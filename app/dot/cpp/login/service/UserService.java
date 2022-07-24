@@ -11,9 +11,9 @@ import dot.cpp.login.constants.UserStatus;
 import dot.cpp.login.enums.UserRole;
 import dot.cpp.login.exceptions.UserException;
 import dot.cpp.login.models.user.entity.User;
-import dot.cpp.login.models.user.repository.UserRepository;
 import dot.cpp.login.models.user.request.AcceptInviteRequest;
 import dot.cpp.login.models.user.request.ResetPasswordRequest;
+import dot.cpp.repository.repository.BaseRepository;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -24,7 +24,7 @@ public class UserService extends EntityService<User> {
   private final Argon2Function argon2 = Argon2Function.getInstance(1000, 4, 2, 32, Argon2.ID, 19);
 
   @Inject
-  public UserService(UserRepository repository, Config config) {
+  public UserService(BaseRepository<User> repository, Config config) {
     super(repository);
     this.passwordPepper = config.getString("password.pepper");
   }

@@ -10,6 +10,7 @@ import dot.cpp.login.models.session.entity.Session;
 import dot.cpp.login.models.session.repository.SessionRepository;
 import dot.cpp.login.models.user.entity.User;
 import dot.cpp.login.models.user.repository.UserRepository;
+import dot.cpp.repository.repository.BaseRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -28,7 +29,7 @@ public class LoginService {
   private final SecretKey key;
   private final Logger logger = LoggerFactory.getLogger(getClass());
   public final UserService userService;
-  private final UserRepository userRepository;
+  private final BaseRepository<User> userRepository;
   private final SessionRepository sessionRepository;
 
   @Inject
