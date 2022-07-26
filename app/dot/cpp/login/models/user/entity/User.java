@@ -10,7 +10,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
-@Entity
+@Entity("User")
 public class User extends BaseEntity {
 
   @NotBlank private String userName;

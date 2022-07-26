@@ -2,10 +2,13 @@ package dot.cpp.login.models.session.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.gson.Gson;
+import dev.morphia.annotations.Entity;
+import dev.morphia.annotations.Transient;
 import dot.cpp.repository.models.BaseEntity;
 import play.mvc.Http;
 import play.mvc.Http.Cookie;
 
+@Entity("Session")
 public class Session extends BaseEntity {
 
   private String userId;
@@ -14,7 +17,7 @@ public class Session extends BaseEntity {
   private String refreshToken;
   private Long createTime;
 
-  @JsonIgnore private Cookie cookie;
+  @Transient @JsonIgnore private Cookie cookie;
 
   /**
    * PerformedLogout.
