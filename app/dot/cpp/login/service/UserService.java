@@ -18,9 +18,13 @@ import java.util.List;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Singleton
 public class UserService extends EntityService<User> {
+
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   private final String passwordPepper;
   private final Argon2Function argon2 = Argon2Function.getInstance(1000, 4, 2, 32, Argon2.ID, 19);
 
@@ -41,13 +45,13 @@ public class UserService extends EntityService<User> {
     user.setStatus(UserStatus.INACTIVE);
     user.setResetPasswordUuid(resetPasswordUuid);
 
-    repository.save(user);
+    save(user);
 
     return resetPasswordUuid;
   }
 
   public String generateResetPasswordUuid(String email) throws UserException {
-    final User user = repository.findByField("email", email);
+    final User user = findByField("email", email);
 
     if (user == null) {
       throw new UserException(Error.USER_EMAIL_NOT_FOUND);
@@ -59,7 +63,7 @@ public class UserService extends EntityService<User> {
 
     final String resetPasswordUuid = UUID.randomUUID().toString();
     user.setResetPasswordUuid(resetPasswordUuid);
-    repository.save(user);
+    save(user);
 
     logger.debug("{}", user);
     return resetPasswordUuid;
@@ -70,7 +74,7 @@ public class UserService extends EntityService<User> {
     logger.debug("{}", resetPasswordRequest);
     logger.debug("{}", resetPasswordUuid);
 
-    final var user = repository.findByField("resetPasswordUuid", resetPasswordUuid);
+    final var user = findByField("resetPasswordUuid", resetPasswordUuid);
 
     if (user == null) {
       throw new UserException(Error.NOT_FOUND);
@@ -83,7 +87,7 @@ public class UserService extends EntityService<User> {
     user.setResetPasswordUuid("");
 
     logger.debug("{}", user);
-    repository.save(user);
+    save(user);
     return user;
   }
 
@@ -95,7 +99,7 @@ public class UserService extends EntityService<User> {
   }
 
   public User userIsActiveAndHasRole(String userId, List<UserRole> userRoles) throws UserException {
-    final var user = repository.findById(userId);
+    final var user = findById(userId);
 
     if (user == null) {
       throw new UserException(Error.NOT_FOUND);
@@ -117,7 +121,7 @@ public class UserService extends EntityService<User> {
     logger.debug("{}", acceptInviteRequest);
     logger.debug("{}", resetPasswordUuid);
 
-    final var user = repository.findByField("resetPasswordUuid", resetPasswordUuid);
+    final var user = findByField("resetPasswordUuid", resetPasswordUuid);
 
     final Hash hashedPassword = getHashedPassword(acceptInviteRequest.getPassword());
 
@@ -127,7 +131,7 @@ public class UserService extends EntityService<User> {
     user.setStatus(UserStatus.ACTIVE);
 
     logger.debug("{}", user);
-    repository.save(user);
+    save(user);
     return user;
   }
 
