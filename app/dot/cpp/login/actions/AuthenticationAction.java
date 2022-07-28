@@ -10,8 +10,10 @@ import dot.cpp.login.exceptions.LoginException;
 import dot.cpp.login.exceptions.UserException;
 import dot.cpp.login.helpers.CookieHelper;
 import dot.cpp.login.service.LoginService;
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,8 +53,10 @@ public class AuthenticationAction extends Action<Authentication> {
     logger.debug("{}", constructedAccessToken);
 
     try {
-      final String userId = loginService.authorizeRequest(accessToken, configuration.userRole());
-      return delegate.call(request.addAttr(Constants.USER_ID, userId));
+      final var user =
+          loginService.authorizeRequest(
+              accessToken, Arrays.stream(configuration.userRoles()).collect(Collectors.toList()));
+      return delegate.call(request.addAttr(Constants.USER, user));
     } catch (LoginException | UserException e) {
       try {
         final JsonObject tokens = loginService.refreshTokens(refreshToken);

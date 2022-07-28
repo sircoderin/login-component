@@ -10,12 +10,12 @@ import dot.cpp.login.models.session.entity.Session;
 import dot.cpp.login.models.session.repository.SessionRepository;
 import dot.cpp.login.models.user.entity.User;
 import dot.cpp.login.models.user.repository.UserRepository;
-import dot.cpp.repository.repository.BaseRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 import javax.inject.Inject;
@@ -98,6 +98,7 @@ public class LoginService {
   public String checkJwtAndGetUserId(String jwtToken) throws LoginException {
     logger.debug("{}", jwtToken);
 
+    // TODO JWT EXCEPTIONS
     final var jws = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jwtToken);
     final var expirationDate = jws.getBody().getExpiration();
 
@@ -108,13 +109,11 @@ public class LoginService {
     return jws.getBody().getSubject();
   }
 
-  public String authorizeRequest(String accessToken, UserRole userRole)
+  public User authorizeRequest(String accessToken, List<UserRole> permittedUserRoles)
       throws LoginException, UserException {
     final String userId = checkJwtAndGetUserId(accessToken);
 
-    userService.userIsActiveAndHasRole(userId, userRole);
-
-    return userId;
+    return userService.userIsActiveAndHasRole(userId, permittedUserRoles);
   }
 
   public JsonObject refreshTokens(String refreshToken) throws LoginException {
@@ -139,8 +138,8 @@ public class LoginService {
     final String accessToken = getAccessToken(session.getUserId());
 
     final JsonObject tokens = new JsonObject();
-    tokens.addProperty("accessToken", accessToken);
-    tokens.addProperty("refreshToken", refreshToken);
+    tokens.addProperty(Constants.ACCESS_TOKEN, accessToken);
+    tokens.addProperty(Constants.REFRESH_TOKEN, refreshToken);
 
     logger.debug("{}", tokens);
     return tokens;

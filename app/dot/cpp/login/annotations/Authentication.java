@@ -16,7 +16,7 @@ public @interface Authentication {
   /** This parameter will redirect to the URL. */
   String redirectUrl() default "/login";
 
-  UserRole userRole();
+  UserRole[] userRoles() default {};
 
   int status() default -1;
 }

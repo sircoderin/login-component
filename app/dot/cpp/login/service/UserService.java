@@ -14,6 +14,7 @@ import dot.cpp.login.models.user.entity.User;
 import dot.cpp.login.models.user.repository.UserRepository;
 import dot.cpp.login.models.user.request.AcceptInviteRequest;
 import dot.cpp.login.models.user.request.ResetPasswordRequest;
+import java.util.List;
 import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -93,7 +94,7 @@ public class UserService extends EntityService<User> {
     return verified;
   }
 
-  public void userIsActiveAndHasRole(String userId, UserRole userRole) throws UserException {
+  public User userIsActiveAndHasRole(String userId, List<UserRole> userRoles) throws UserException {
     final var user = repository.findById(userId);
 
     if (user == null) {
@@ -104,10 +105,12 @@ public class UserService extends EntityService<User> {
       if (!user.isActive()) {
         throw new UserException(Error.ACCOUNT_INACTIVE);
       }
-      if (user.getRole() != userRole && userRole != UserRole.ALL) {
+      if (!userRoles.isEmpty() && !userRoles.contains(user.getRole())) {
         throw new UserException(Error.USER_ROLE_MISMATCH);
       }
     }
+
+    return user;
   }
 
   public User acceptInvitation(AcceptInviteRequest acceptInviteRequest, String resetPasswordUuid) {
