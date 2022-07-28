@@ -29,7 +29,7 @@ public class LoginService {
   private final SecretKey key;
   private final Logger logger = LoggerFactory.getLogger(getClass());
   public final UserService userService;
-  private final BaseRepository<User> userRepository;
+  private final UserRepository userRepository;
   private final SessionRepository sessionRepository;
 
   @Inject
@@ -43,7 +43,7 @@ public class LoginService {
   }
 
   public JsonObject login(String userName, String password) throws LoginException {
-    var user = userRepository.findByField(User.class, "userName", userName);
+    var user = userRepository.findByField("userName", userName);
 
     if (user == null) {
       throw new LoginException(Error.NOT_FOUND);
@@ -118,8 +118,7 @@ public class LoginService {
   }
 
   public JsonObject refreshTokens(String refreshToken) throws LoginException {
-    final Session session =
-        sessionRepository.findByField(Session.class, "refreshToken", refreshToken);
+    final Session session = sessionRepository.findByField("refreshToken", refreshToken);
 
     if (session == null) {
       throw new LoginException(Error.SESSION_NOT_FOUND);
@@ -148,7 +147,7 @@ public class LoginService {
   }
 
   public void logout(String userId) throws UserException {
-    final var session = sessionRepository.findByField(Session.class, "userId", userId);
+    final var session = sessionRepository.findByField("userId", userId);
     if (session == null) {
       throw new UserException(Error.SESSION_NOT_FOUND);
     }
