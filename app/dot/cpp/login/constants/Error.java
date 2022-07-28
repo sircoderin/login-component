@@ -7,7 +7,9 @@ public enum Error {
   USER_ROLE_MISMATCH("User does not have role"),
   USER_EMAIL_NOT_FOUND("No user associated with the given email was found"),
   ACCOUNT_INACTIVE("Account is inactive"),
-  SESSION_NOT_FOUND("Session not found");
+  SESSION_NOT_FOUND("Session not found"),
+  INVALID_JWT("Invalid JWT");
+
   final String message;
 
   Error(String message) {

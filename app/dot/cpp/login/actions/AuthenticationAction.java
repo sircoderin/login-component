@@ -57,16 +57,24 @@ public class AuthenticationAction extends Action<Authentication> {
           loginService.authorizeRequest(
               accessToken, Arrays.stream(configuration.userRoles()).collect(Collectors.toList()));
       return delegate.call(request.addAttr(Constants.USER, user));
-    } catch (LoginException | UserException e) {
+    } catch (LoginException loginEx) {
+      logger.debug("{}", loginEx.getMessage());
       try {
         final JsonObject tokens = loginService.refreshTokens(refreshToken);
         logger.debug("{}", tokens);
         return getSuccessfulResult(tokens);
       } catch (LoginException loginException) {
-        logger.debug("{}", e.getMessage());
-        return statusIfPresentOrResult(redirectWithError(messages));
+        return getCompletableFutureResultOnError(messages, loginException);
       }
+    } catch (UserException userEx) {
+      return getCompletableFutureResultOnError(messages, userEx);
     }
+  }
+
+  private CompletableFuture<Result> getCompletableFutureResultOnError(
+      Messages messages, Exception ex) {
+    logger.debug("{}", ex.getMessage());
+    return statusIfPresentOrResult(redirectWithError(messages));
   }
 
   private CompletableFuture<Result> getSuccessfulResult(JsonObject tokens) {

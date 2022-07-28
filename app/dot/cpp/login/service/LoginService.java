@@ -10,6 +10,8 @@ import dot.cpp.login.models.session.entity.Session;
 import dot.cpp.login.models.session.repository.SessionRepository;
 import dot.cpp.login.models.user.entity.User;
 import dot.cpp.login.models.user.repository.UserRepository;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -98,15 +100,23 @@ public class LoginService {
   public String checkJwtAndGetUserId(String jwtToken) throws LoginException {
     logger.debug("{}", jwtToken);
 
-    // TODO JWT EXCEPTIONS
-    final var jws = Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jwtToken);
-    final var expirationDate = jws.getBody().getExpiration();
+    final var claims = getJwsClaims(jwtToken).getBody();
+    final var expirationDate = claims.getExpiration();
 
     if (expirationDate.before(new Date())) {
       throw new LoginException(Error.EXPIRED_ACCESS);
     }
 
-    return jws.getBody().getSubject();
+    return claims.getSubject();
+  }
+
+  private Jws<Claims> getJwsClaims(String jwtToken) throws LoginException {
+    try {
+      return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(jwtToken);
+    } catch (Exception e) {
+      logger.info("JWT error {}", e.getMessage());
+      throw new LoginException(Error.INVALID_JWT);
+    }
   }
 
   public User authorizeRequest(String accessToken, List<UserRole> permittedUserRoles)
@@ -123,7 +133,7 @@ public class LoginService {
       throw new LoginException(Error.SESSION_NOT_FOUND);
     }
 
-    logger.debug("before Refresh {}", session);
+    logger.debug("before refresh {}", session);
 
     Date expirationDateRefresh = new Date();
     expirationDateRefresh.setTime(expirationDateRefresh.getTime() + 86400000L); // one day
@@ -133,7 +143,7 @@ public class LoginService {
     session.setRefreshToken(newRefreshToken);
     sessionRepository.save(session);
 
-    logger.debug("afterRefresh {}", session);
+    logger.debug("after refresh {}", session);
 
     final String accessToken = getAccessToken(session.getUserId());
 
@@ -141,7 +151,7 @@ public class LoginService {
     tokens.addProperty(Constants.ACCESS_TOKEN, accessToken);
     tokens.addProperty(Constants.REFRESH_TOKEN, refreshToken);
 
-    logger.debug("{}", tokens);
+    logger.debug("refreshed tokens {}", tokens);
     return tokens;
   }
 
