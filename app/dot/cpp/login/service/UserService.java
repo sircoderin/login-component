@@ -30,7 +30,7 @@ public class UserService extends EntityService<User> {
 
   @Inject
   public UserService(UserRepository userRepository, Config config) {
-    super(userRepository);
+    super(userRepository, config);
     this.passwordPepper = config.getString("password.pepper");
   }
 

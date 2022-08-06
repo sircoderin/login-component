@@ -6,11 +6,14 @@ import com.google.gson.JsonObject;
 import dot.cpp.core.constants.Patterns;
 import dot.cpp.login.annotations.Authentication;
 import dot.cpp.login.constants.Constants;
+import dot.cpp.login.enums.UserRole;
 import dot.cpp.login.exceptions.LoginException;
 import dot.cpp.login.exceptions.UserException;
 import dot.cpp.login.helpers.CookieHelper;
+import dot.cpp.login.models.user.entity.User;
 import dot.cpp.login.service.LoginService;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
@@ -53,22 +56,27 @@ public class AuthenticationAction extends Action<Authentication> {
     logger.debug("{}", constructedAccessToken);
 
     try {
-      final var user =
-          loginService.authorizeRequest(
-              accessToken, Arrays.stream(configuration.userRoles()).collect(Collectors.toList()));
+      final var user = loginService.authorizeRequest(accessToken, getConfigUserRoles());
       return delegate.call(request.addAttr(Constants.USER, user));
     } catch (LoginException loginEx) {
       logger.debug("{}", loginEx.getMessage());
+
       try {
         final JsonObject tokens = loginService.refreshTokens(refreshToken);
-        logger.debug("{}", tokens);
-        return getSuccessfulResult(tokens);
-      } catch (LoginException loginException) {
-        return getCompletableFutureResultOnError(messages, loginException);
+        final var user =
+            loginService.authorizeRequest(
+                tokens.get(Constants.ACCESS_TOKEN).getAsString(), getConfigUserRoles());
+        return getSuccessfulResult(request, user, tokens);
+      } catch (LoginException | UserException refreshException) {
+        return getCompletableFutureResultOnError(messages, refreshException);
       }
     } catch (UserException userEx) {
       return getCompletableFutureResultOnError(messages, userEx);
     }
+  }
+
+  private List<UserRole> getConfigUserRoles() {
+    return Arrays.stream(configuration.userRoles()).collect(Collectors.toList());
   }
 
   private CompletableFuture<Result> getCompletableFutureResultOnError(
@@ -77,12 +85,18 @@ public class AuthenticationAction extends Action<Authentication> {
     return statusIfPresentOrResult(redirectWithError(messages));
   }
 
-  private CompletableFuture<Result> getSuccessfulResult(JsonObject tokens) {
-    return CompletableFuture.completedFuture(
-        ok().withCookies(
-                getCookie(Constants.ACCESS_TOKEN, tokens.get(Constants.ACCESS_TOKEN).getAsString()),
-                getCookie(
-                    Constants.REFRESH_TOKEN, tokens.get(Constants.REFRESH_TOKEN).getAsString())));
+  private CompletionStage<Result> getSuccessfulResult(
+      Request request, User user, JsonObject tokens) {
+    return delegate
+        .call(request.addAttr(Constants.USER, user))
+        .thenApply(
+            result ->
+                result.withCookies(
+                    getCookie(
+                        Constants.ACCESS_TOKEN, tokens.get(Constants.ACCESS_TOKEN).getAsString()),
+                    getCookie(
+                        Constants.REFRESH_TOKEN,
+                        tokens.get(Constants.REFRESH_TOKEN).getAsString())));
   }
 
   private String constructToken(

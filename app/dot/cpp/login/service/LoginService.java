@@ -149,7 +149,7 @@ public class LoginService {
 
     final JsonObject tokens = new JsonObject();
     tokens.addProperty(Constants.ACCESS_TOKEN, accessToken);
-    tokens.addProperty(Constants.REFRESH_TOKEN, refreshToken);
+    tokens.addProperty(Constants.REFRESH_TOKEN, newRefreshToken);
 
     logger.debug("refreshed tokens {}", tokens);
     return tokens;
