@@ -19,6 +19,8 @@ import play.mvc.Result;
 @Singleton
 public final class RequestErrorService {
 
+  public static final String DANGER = "alert-danger";
+
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final MessagesApi messagesApi;
 
@@ -58,8 +60,11 @@ public final class RequestErrorService {
    */
   public Result handleFormErrorWithRefresh(Http.Request request, Form<?> webForm) {
     var messages = messagesApi.preferred(request);
-    return redirect(request.uri())
-        .flashing("alert-danger", getErrorMessage(webForm.errors(), messages));
+    return redirect(request.uri()).flashing(DANGER, getErrorMessage(webForm.errors(), messages));
+  }
+
+  public Result handleErrorWithMessage(Http.Request request, Call call, String message) {
+    return redirect(call).flashing(DANGER, messagesApi.preferred(request).apply(message));
   }
 
   private String getErrorMessage(List<ValidationError> validationErrors, Messages messages) {
@@ -75,6 +80,6 @@ public final class RequestErrorService {
   }
 
   private Result getResult(Call call, String message) {
-    return redirect(call).flashing("alert-danger", message);
+    return redirect(call).flashing(DANGER, message);
   }
 }
