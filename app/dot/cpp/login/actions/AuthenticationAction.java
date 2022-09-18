@@ -4,6 +4,7 @@ import static dot.cpp.login.helpers.CookieHelper.getCookie;
 
 import com.google.gson.JsonObject;
 import dot.cpp.core.constants.Patterns;
+import dot.cpp.core.exceptions.EntityNotFoundException;
 import dot.cpp.login.annotations.Authentication;
 import dot.cpp.login.constants.Constants;
 import dot.cpp.login.enums.UserRole;
@@ -62,15 +63,15 @@ public class AuthenticationAction extends Action<Authentication> {
       logger.debug("{}", loginEx.getMessage());
 
       try {
-        final JsonObject tokens = loginService.refreshTokens(refreshToken);
+        final var tokens = loginService.refreshTokens(refreshToken);
         final var user =
             loginService.authorizeRequest(
                 tokens.get(Constants.ACCESS_TOKEN).getAsString(), getConfigUserRoles());
         return getSuccessfulResult(request, user, tokens);
-      } catch (LoginException | UserException refreshException) {
+      } catch (LoginException | UserException | EntityNotFoundException refreshException) {
         return getCompletableFutureResultOnError(messages, refreshException);
       }
-    } catch (UserException userEx) {
+    } catch (UserException | EntityNotFoundException userEx) {
       return getCompletableFutureResultOnError(messages, userEx);
     }
   }
@@ -81,7 +82,7 @@ public class AuthenticationAction extends Action<Authentication> {
 
   private CompletableFuture<Result> getCompletableFutureResultOnError(
       Messages messages, Exception ex) {
-    logger.debug("{}", ex.getMessage());
+    logger.debug("", ex);
     return statusIfPresentOrResult(redirectWithError(messages));
   }
 

@@ -5,6 +5,7 @@ import com.password4j.Hash;
 import com.password4j.Password;
 import com.password4j.types.Argon2;
 import com.typesafe.config.Config;
+import dot.cpp.core.exceptions.EntityNotFoundException;
 import dot.cpp.core.services.EntityService;
 import dot.cpp.login.constants.Error;
 import dot.cpp.login.constants.UserStatus;
@@ -51,22 +52,22 @@ public class UserService extends EntityService<User> {
   }
 
   public String generateResetPasswordUuid(String email) throws UserException {
-    final User user = findByField("email", email);
 
-    if (user == null) {
+    try {
+      final User user = findByField("email", email);
+      if (!user.isActive()) {
+        throw new UserException(Error.ACCOUNT_INACTIVE);
+      }
+
+      final String resetPasswordUuid = UUID.randomUUID().toString();
+      user.setResetPasswordUuid(resetPasswordUuid);
+      save(user);
+
+      logger.debug("{}", user);
+      return resetPasswordUuid;
+    } catch (EntityNotFoundException e) {
       throw new UserException(Error.USER_EMAIL_NOT_FOUND);
     }
-
-    if (!user.isActive()) {
-      throw new UserException(Error.ACCOUNT_INACTIVE);
-    }
-
-    final String resetPasswordUuid = UUID.randomUUID().toString();
-    user.setResetPasswordUuid(resetPasswordUuid);
-    save(user);
-
-    logger.debug("{}", user);
-    return resetPasswordUuid;
   }
 
   public User resetPassword(ResetPasswordRequest resetPasswordRequest, String resetPasswordUuid)
@@ -74,21 +75,25 @@ public class UserService extends EntityService<User> {
     logger.debug("{}", resetPasswordRequest);
     logger.debug("{}", resetPasswordUuid);
 
-    final var user = findByField("resetPasswordUuid", resetPasswordUuid);
+    try {
+      final var user = findByField("resetPasswordUuid", resetPasswordUuid);
 
-    if (user == null) {
-      throw new UserException(Error.NOT_FOUND);
+      if (user == null) {
+        throw new UserException(Error.NOT_FOUND);
+      }
+
+      final Hash hashedPassword = getHashedPassword(resetPasswordRequest.getPassword());
+
+      logger.debug("{}", hashedPassword);
+      user.setPassword(hashedPassword.getResult());
+      user.setResetPasswordUuid("");
+
+      logger.debug("{}", user);
+      save(user);
+      return user;
+    } catch (EntityNotFoundException e) {
+      throw new UserException(Error.RESET_PASS_UUID_NOT_FOUND);
     }
-
-    final Hash hashedPassword = getHashedPassword(resetPasswordRequest.getPassword());
-
-    logger.debug("{}", hashedPassword);
-    user.setPassword(hashedPassword.getResult());
-    user.setResetPasswordUuid("");
-
-    logger.debug("{}", user);
-    save(user);
-    return user;
   }
 
   public boolean checkPassword(String hashedPassword, String password) {
@@ -98,41 +103,42 @@ public class UserService extends EntityService<User> {
     return verified;
   }
 
-  public User userIsActiveAndHasRole(String userId, List<UserRole> userRoles) throws UserException {
+  public User userIsActiveAndHasRole(String userId, List<UserRole> userRoles)
+      throws UserException, EntityNotFoundException {
+
     final var user = findById(userId);
+    logger.debug("{}", user);
 
-    if (user == null) {
-      throw new UserException(Error.NOT_FOUND);
-    } else {
-      logger.debug("{}", user);
-
-      if (!user.isActive()) {
-        throw new UserException(Error.ACCOUNT_INACTIVE);
-      }
-      if (!userRoles.isEmpty() && !userRoles.contains(user.getRole())) {
-        throw new UserException(Error.USER_ROLE_MISMATCH);
-      }
+    if (!user.isActive()) {
+      throw new UserException(Error.ACCOUNT_INACTIVE);
+    }
+    if (!userRoles.isEmpty() && !userRoles.contains(user.getRole())) {
+      throw new UserException(Error.USER_ROLE_MISMATCH);
     }
 
     return user;
   }
 
-  public User acceptInvitation(AcceptInviteRequest acceptInviteRequest, String resetPasswordUuid) {
-    logger.debug("{}", acceptInviteRequest);
-    logger.debug("{}", resetPasswordUuid);
+  public User acceptInvitation(AcceptInviteRequest acceptInviteRequest, String resetPasswordUuid)
+      throws UserException {
+    logger.debug("{}\n{}", acceptInviteRequest, resetPasswordUuid);
 
-    final var user = findByField("resetPasswordUuid", resetPasswordUuid);
+    try {
+      final var user = findByField("resetPasswordUuid", resetPasswordUuid);
 
-    final Hash hashedPassword = getHashedPassword(acceptInviteRequest.getPassword());
+      final Hash hashedPassword = getHashedPassword(acceptInviteRequest.getPassword());
 
-    user.setPassword(hashedPassword.getResult());
-    user.setUserName(acceptInviteRequest.getUsername());
-    user.setResetPasswordUuid("");
-    user.setStatus(UserStatus.ACTIVE);
+      user.setPassword(hashedPassword.getResult());
+      user.setUserName(acceptInviteRequest.getUsername());
+      user.setResetPasswordUuid("");
+      user.setStatus(UserStatus.ACTIVE);
 
-    logger.debug("{}", user);
-    save(user);
-    return user;
+      logger.debug("{}", user);
+      save(user);
+      return user;
+    } catch (EntityNotFoundException e) {
+      throw new UserException(Error.RESET_PASS_UUID_NOT_FOUND);
+    }
   }
 
   private Hash getHashedPassword(String password) {

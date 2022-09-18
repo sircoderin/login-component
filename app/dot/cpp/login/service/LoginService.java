@@ -1,6 +1,7 @@
 package dot.cpp.login.service;
 
 import com.google.gson.JsonObject;
+import dot.cpp.core.exceptions.EntityNotFoundException;
 import dot.cpp.login.constants.Constants;
 import dot.cpp.login.constants.Error;
 import dot.cpp.login.enums.UserRole;
@@ -120,15 +121,15 @@ public class LoginService {
   }
 
   public User authorizeRequest(String accessToken, List<UserRole> permittedUserRoles)
-      throws LoginException, UserException {
+      throws LoginException, UserException, EntityNotFoundException {
     final String userId = checkJwtAndGetUserId(accessToken);
 
     return userService.userIsActiveAndHasRole(userId, permittedUserRoles);
   }
 
   public JsonObject refreshTokens(String refreshToken) throws LoginException {
-    final Session session = sessionRepository.findByField("refreshToken", refreshToken);
 
+    final Session session = sessionRepository.findByField("refreshToken", refreshToken);
     if (session == null) {
       throw new LoginException(Error.SESSION_NOT_FOUND);
     }
