@@ -71,29 +71,20 @@ public class UserService extends EntityService<User> {
   }
 
   public User resetPassword(ResetPasswordRequest resetPasswordRequest, String resetPasswordUuid)
-      throws UserException {
+      throws EntityNotFoundException {
     logger.debug("{}", resetPasswordRequest);
     logger.debug("{}", resetPasswordUuid);
 
-    try {
-      final var user = findByField("resetPasswordUuid", resetPasswordUuid);
+    final var user = findByField("resetPasswordUuid", resetPasswordUuid);
 
-      if (user == null) {
-        throw new UserException(Error.NOT_FOUND);
-      }
+    final Hash hashedPassword = getHashedPassword(resetPasswordRequest.getPassword());
+    logger.debug("{}", hashedPassword);
+    user.setPassword(hashedPassword.getResult());
+    user.setResetPasswordUuid("");
 
-      final Hash hashedPassword = getHashedPassword(resetPasswordRequest.getPassword());
-
-      logger.debug("{}", hashedPassword);
-      user.setPassword(hashedPassword.getResult());
-      user.setResetPasswordUuid("");
-
-      logger.debug("{}", user);
-      save(user);
-      return user;
-    } catch (EntityNotFoundException e) {
-      throw new UserException(Error.RESET_PASS_UUID_NOT_FOUND);
-    }
+    logger.debug("{}", user);
+    save(user);
+    return user;
   }
 
   public boolean checkPassword(String hashedPassword, String password) {
@@ -120,25 +111,21 @@ public class UserService extends EntityService<User> {
   }
 
   public User acceptInvitation(AcceptInviteRequest acceptInviteRequest, String resetPasswordUuid)
-      throws UserException {
+      throws EntityNotFoundException {
     logger.debug("{}\n{}", acceptInviteRequest, resetPasswordUuid);
 
-    try {
-      final var user = findByField("resetPasswordUuid", resetPasswordUuid);
+    final var user = findByField("resetPasswordUuid", resetPasswordUuid);
 
-      final Hash hashedPassword = getHashedPassword(acceptInviteRequest.getPassword());
+    final Hash hashedPassword = getHashedPassword(acceptInviteRequest.getPassword());
 
-      user.setPassword(hashedPassword.getResult());
-      user.setUserName(acceptInviteRequest.getUsername());
-      user.setResetPasswordUuid("");
-      user.setStatus(UserStatus.ACTIVE);
+    user.setPassword(hashedPassword.getResult());
+    user.setUserName(acceptInviteRequest.getUsername());
+    user.setResetPasswordUuid("");
+    user.setStatus(UserStatus.ACTIVE);
 
-      logger.debug("{}", user);
-      save(user);
-      return user;
-    } catch (EntityNotFoundException e) {
-      throw new UserException(Error.RESET_PASS_UUID_NOT_FOUND);
-    }
+    logger.debug("{}", user);
+    save(user);
+    return user;
   }
 
   private Hash getHashedPassword(String password) {
