@@ -14,6 +14,7 @@ import dot.cpp.login.exceptions.UserException;
 import dot.cpp.login.models.user.entity.User;
 import dot.cpp.login.models.user.repository.UserRepository;
 import dot.cpp.login.models.user.request.AcceptInviteRequest;
+import dot.cpp.login.models.user.request.InviteUserRequest;
 import dot.cpp.login.models.user.request.ResetPasswordRequest;
 import java.util.List;
 import java.util.UUID;
@@ -23,7 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
-public class UserService extends EntityService<User> {
+public class UserService extends EntityService<User, InviteUserRequest> {
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private final String passwordPepper;
@@ -130,5 +131,15 @@ public class UserService extends EntityService<User> {
 
   private Hash getHashedPassword(String password) {
     return Password.hash(password).addRandomSalt(16).addPepper(passwordPepper).with(argon2);
+  }
+
+  @Override
+  public User getNewEntity() {
+    return new User();
+  }
+
+  @Override
+  public InviteUserRequest getNewRequest() {
+    return new InviteUserRequest();
   }
 }
